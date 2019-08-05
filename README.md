@@ -2,6 +2,8 @@
 
 A simple, robust protocol and class for inter-Arduino UART communication.
 
+*Note that checksums are currently unimplemented*
+
 ## ASCII Message
 
 The basic structure of an internal message is as follows:
@@ -12,16 +14,23 @@ The basic structure of an internal message is as follows:
 
 `msg_id`:   the command number range 0:255 (uint8_t) expressed in ASCII
 
-`param_n`:  the nth type-ambiguous param associated with the command
-          the param can even be a string containing whitespace, but cannot contain restricted chars
-          the params (including commas) can take up anywhere from 0 - 128 chars
+`param_n`:  The nth type-ambiguous param associated with the command. The param can even be a string 
+containing whitespace, but cannot contain restricted chars. The params (including the leading comma 
+for each parameter) can take up anywhere from 0 - 127 chars.
 
 `checksum`: the TBD method checksum to verify the message integrity (future work, optional)
 
 Special characters that can't be used in the param_n sections:
 `,` or `;` or `#` or `?` or `!`
 
-Note that a newline character at the end of a message (`\n`) isn't expected, but can be handled.
+Note that a newline character at the end of a message (`\n`) isn't expected, but can be handled and is
+generated for each TX message for ease of reading on a terminal.
+
+In the case of a message with no parameters, the commas are omitted entirely:
+
+```
+#msg_id;checksum;
+```
 
 ## ACK/NAK Message
 
@@ -57,9 +66,9 @@ The structure of a binary message is as follows:
 
 The software core, SerialComm, doesn't maintain message types and is agnostic of the command IDs. It
 simply provides a method for parsing out the command id, verifying the checksum, and separating out a
-string containing only the `param_1,param_2,...,param_n` message (if present). The core also provides
-standard, safe functions for parsing out and generating individual params of different types from and for
-the message string.
+string containing only the `,param_1,param_2,...,param_n` message (if present). Note that a leading comma
+is included for each parameter. The core also provides standard, safe functions for parsing out and 
+generating individual params of different types from and for the message string.
 
 In the case that that ACK/NAK response is required from a message, the protocol handles this by using a
 different delimiter for the message start: `?`. This is followed only by the ACK/NAK and the checksum.

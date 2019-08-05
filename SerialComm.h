@@ -16,6 +16,10 @@
 #include "Arduino.h"
 #include <stdint.h>
 
+#define ASCII_DELIMITER   '#'
+#define ACK_DELIMITER     '?'
+#define BIN_DELIMITER     '!'
+
 #define READ_TIMEOUT   100 // milliseconds
 
 enum SerialMessage_t {
@@ -36,7 +40,7 @@ struct BIN_MSG_t {
     uint8_t bin_id;
     uint16_t bin_length;
     uint8_t * bin_buffer;
-}
+};
 
 class SerialComm {
 public:
@@ -47,7 +51,7 @@ public:
     SerialMessage_t RX();
 
     // Transmit interface
-    void TX_ASCII(uint8_t msg_id);
+    void TX_ASCII();
     void TX_Ack(uint8_t msg_id, bool ack_val);
     void TX_Bin();
 
@@ -69,9 +73,12 @@ public:
 
 private:
     // Receive message parsing
-    bool Parse_ASCII();
-    bool Parse_Ack();
-    bool Parse_Bin();
+    bool Read_ASCII(uint32_t timeout);
+    bool Read_Ack(uint32_t timeout);
+    bool Read_Bin(uint32_t timeout);
+
+    // reset RX internal state
+    void ResetRX();
 
     // Serial port
     Stream * rx_stream;
