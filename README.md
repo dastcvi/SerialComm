@@ -1,10 +1,17 @@
 # SerialComm
 
-A simple, robust protocol and class for inter-Arduino UART communication.
+A simple, robust protocol and class for inter-Arduino UART communication. See examples/SerialComm_Test.ino
+for a test script that exercises functionality.
 
 *Note that checksums are currently unimplemented*
 
-## ASCII Message
+*Note that binary is currently unimplemented*
+
+## Message Types
+
+Three message types are supported: ASCII with parameters, ACK/NAK, and binary.
+
+### ASCII Message
 
 The basic structure of an internal message is as follows:
 
@@ -32,7 +39,7 @@ In the case of a message with no parameters, the commas are omitted entirely:
 #msg_id;checksum;
 ```
 
-## ACK/NAK Message
+### ACK/NAK Message
 
 The structure of an ACK/NAK message is as follows:
 
@@ -46,7 +53,7 @@ The structure of an ACK/NAK message is as follows:
 
 `checksum`: the TBD method checksum to verify the message integrity (future work, optional)
 
-## Binary message
+### Binary message
 
 The structure of a binary message is as follows:
 
@@ -65,22 +72,69 @@ The structure of a binary message is as follows:
 ## Description of provided software
 
 The software core, SerialComm, doesn't maintain message types and is agnostic of the command IDs. It
-simply provides a method for parsing out the command id, verifying the checksum, and separating out a
+simply provides a method for determining the message type, and reading it accordingly. This is all done
+by calling the `SerialComm.RX()` function, which returns the message type (`SerialMessage_t`).
+
+For an ASCII message, this entails parsing out the command id, verifying the checksum, and separating out a
 string containing only the `,param_1,param_2,...,param_n` message (if present). Note that a leading comma
 is included for each parameter. The core also provides standard, safe functions for parsing out and 
-generating individual params of different types from and for the message string.
+generating individual params of different types from and for the message string. The message, its id, buffer,
+and more are available in the `ascii_rx` struct of type `ASCII_MSG_t`.
 
-In the case that that ACK/NAK response is required from a message, the protocol handles this by using a
-different delimiter for the message start: `?`. This is followed only by the ACK/NAK and the checksum.
+For an ACK/NAK message, the member variable `ack_id` contains the id being ack'ed, and the `ack_value` contains
+the ACK/NAK value as a boolean.
 
-Binary messages use the `!` delimiter for the message start, and the user must pass the statically allocated
-RX and TX buffers into the class when each object is instantiated. This way, if very large messages are
-expected, the user can allocate a large enough buffer.
+Binary messages are in progress.
+
+## Usage
 
 For a board to use this protocol, it should implement files on top of the core to enumerate command ID's
 and to provide functions for parsing and generating each command (using the provided functions). The
 core will provide the router that parses out the ID, checks the checksum, and places the message in a
 statically-allocated buffer for the instruments to parse.
+
+For example, the protocol for two boards that need to communicate with eachother could be implemented in
+one class that inherits from SerialComm. The header file could look like the following:
+
+```C++
+#include "SerialComm.h"
+
+enum InternalMessages_t : uint8_t {
+    NO_MESSAGE = 0, // necessary
+    MESSAGE1 = 1,
+    // and so on...
+};
+
+class InternalMessaging : SerialComm(&Serial1) {
+public:
+    bool TX_Message1(uint8_t param);
+    bool RX_Message1(uint8_t * param);
+};
+```
+
+The `bool TX_Message1(uint8_t param)` function could be written like this:
+
+```C++
+bool InternalMessaging::TX_Message1(uint8_t param)
+{
+    if (!Add_uint8(param)) return false;
+    // if there were subsequent parameters, they would go here
+    return TX_ASCII(MESSAGE1);
+}
+```
+
+In order for RX to work, the main file would need to call the `RX()` function from the instantiated
+`InternalMessaging` object at a regular interval, and parse based on the return value. If an ASCII message
+is returned with `ascii_rx.msg_id == MESSAGE1`, a `bool RX_Message1(uint8_t * param)` function like the
+following could be called.
+
+```C++
+bool InternalMessaging::RX_Message1(uint8_t * param)
+{
+    if (!Get_uint8(param)) return false;
+    // if there were subsequent parameters, they would go here
+}
+```
 
 ## Aside on Arduino's internal serial buffering
 
