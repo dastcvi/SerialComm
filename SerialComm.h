@@ -59,6 +59,9 @@ public:
     bool Get_uint8(uint8_t * ret_val);
     bool Get_uint16(uint16_t * ret_val);
     bool Get_uint32(uint32_t * ret_val);
+    bool Get_int8(int8_t * ret_val);
+    bool Get_int16(int16_t * ret_val);
+    bool Get_int32(int32_t * ret_val);
     bool Get_float(float * ret_val);
     bool Get_string(char * buffer, uint8_t length);
 
@@ -66,6 +69,9 @@ public:
     bool Add_uint8(uint8_t val);
     bool Add_uint16(uint16_t val);
     bool Add_uint32(uint32_t val);
+    bool Add_int8(int8_t val);
+    bool Add_int16(int16_t val);
+    bool Add_int32(int32_t val);
     bool Add_float(float val);
     bool Add_string(const char * buffer);
 

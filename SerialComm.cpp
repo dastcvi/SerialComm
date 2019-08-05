@@ -271,6 +271,86 @@ bool SerialComm::Get_uint32(uint32_t * ret_val)
     return true;
 }
 
+bool SerialComm::Get_int8(int8_t * ret_val)
+{
+    char int_buffer[5] = {0};
+    uint8_t max_index = ascii_rx.buffer_index + 4; // int8_t means 4 chars max
+    int temp = 0;
+
+    if (',' != ascii_rx.buffer[ascii_rx.buffer_index++]) return false; // always a leading comma
+
+    while (ascii_rx.buffer_index <= max_index) {
+        if (',' == ascii_rx.buffer[ascii_rx.buffer_index] || '\0' == ascii_rx.buffer[ascii_rx.buffer_index]) {
+            break;
+        }
+
+        int_buffer[temp++] = ascii_rx.buffer[ascii_rx.buffer_index++];
+    }
+
+    // ensure next char is ',' or '\0'
+    if (',' != ascii_rx.buffer[ascii_rx.buffer_index] && '\0' != ascii_rx.buffer[ascii_rx.buffer_index]) return false;
+
+    // convert the message id
+    if (1 != sscanf(int_buffer, "%d", &temp)) return false;
+    if (temp > 127 || temp < -128) return false;
+    *ret_val = (int8_t) temp;
+
+    return true;
+}
+
+bool SerialComm::Get_int16(int16_t * ret_val)
+{
+    char int_buffer[7] = {0};
+    uint8_t max_index = ascii_rx.buffer_index + 6; // int16_t means 6 chars max
+    int temp = 0;
+
+    if (',' != ascii_rx.buffer[ascii_rx.buffer_index++]) return false; // always a leading comma
+
+    while (ascii_rx.buffer_index <= max_index) {
+        if (',' == ascii_rx.buffer[ascii_rx.buffer_index] || '\0' == ascii_rx.buffer[ascii_rx.buffer_index]) {
+            break;
+        }
+
+        int_buffer[temp++] = ascii_rx.buffer[ascii_rx.buffer_index++];
+    }
+
+    // ensure next char is ',' or '\0'
+    if (',' != ascii_rx.buffer[ascii_rx.buffer_index] && '\0' != ascii_rx.buffer[ascii_rx.buffer_index]) return false;
+
+    // convert the message id
+    if (1 != sscanf(int_buffer, "%d", &temp)) return false;
+    if (temp > 32767 || temp < -32768) return false;
+    *ret_val = (int16_t) temp;
+
+    return true;
+}
+
+bool SerialComm::Get_int32(int32_t * ret_val)
+{
+    char int_buffer[12] = {0};
+    uint8_t max_index = ascii_rx.buffer_index + 11; // int32_t means 11 chars max
+    int temp = 0;
+
+    if (',' != ascii_rx.buffer[ascii_rx.buffer_index++]) return false; // always a leading comma
+
+    while (ascii_rx.buffer_index <= max_index) {
+        if (',' == ascii_rx.buffer[ascii_rx.buffer_index] || '\0' == ascii_rx.buffer[ascii_rx.buffer_index]) {
+            break;
+        }
+
+        int_buffer[temp++] = ascii_rx.buffer[ascii_rx.buffer_index++];
+    }
+
+    // ensure next char is ',' or '\0'
+    if (',' != ascii_rx.buffer[ascii_rx.buffer_index] && '\0' != ascii_rx.buffer[ascii_rx.buffer_index]) return false;
+
+    // convert the message id
+    if (1 != sscanf(int_buffer, "%d", &temp)) return false;
+    *ret_val = temp;
+
+    return true;
+}
+
 bool SerialComm::Get_float(float * ret_val)
 {
     char int_buffer[16] = {0};
@@ -345,6 +425,36 @@ bool SerialComm::Add_uint32(uint32_t val)
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
     // note leading comma!
     num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%u", (unsigned int) val);
+    
+    // make sure the write was valid and not too large
+    if (num_written < 1 || num_written >= buffer_remaining) {
+        ResetTX();
+        return false;
+    }
+
+    ascii_tx.buffer_index += num_written;
+
+    return true;
+}
+
+bool SerialComm::Add_int8(int8_t val)
+{
+    return Add_int32((int32_t) val);
+}
+
+bool SerialComm::Add_int16(int16_t val)
+{
+    return Add_int32((int32_t) val);
+}
+
+bool SerialComm::Add_int32(int32_t val)
+{
+    uint8_t buffer_remaining = 128 - ascii_tx.buffer_index;
+    int num_written = 0;
+
+    // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
+    // note leading comma!
+    num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%d", (int) val);
     
     // make sure the write was valid and not too large
     if (num_written < 1 || num_written >= buffer_remaining) {
