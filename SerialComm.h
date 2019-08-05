@@ -32,7 +32,7 @@ enum SerialMessage_t {
 struct ASCII_MSG_t {
     uint8_t msg_id;
     uint8_t num_params;
-    uint8_t msg_length;
+    uint8_t buffer_index;
     char buffer[128];
 };
 
@@ -51,7 +51,7 @@ public:
     SerialMessage_t RX();
 
     // Transmit interface
-    void TX_ASCII();
+    void TX_ASCII(uint8_t msg_id);
     void TX_Ack(uint8_t msg_id, bool ack_val);
     void TX_Bin();
 
@@ -60,16 +60,22 @@ public:
     bool Get_uint16(uint16_t * ret_val);
     bool Get_uint32(uint32_t * ret_val);
     bool Get_float(float * ret_val);
+    bool Get_string(char * buffer, uint8_t length);
 
     // ASCII TX buffer interface
-    bool Add_uint8(uint8_t * val);
-    bool Add_uint16(uint16_t * val);
-    bool Add_uint32(uint32_t * val);
-    bool Add_float(float * val);
+    bool Add_uint8(uint8_t val);
+    bool Add_uint16(uint16_t val);
+    bool Add_uint32(uint32_t val);
+    bool Add_float(float val);
+    bool Add_string(const char * buffer);
 
     // ASCII messages with buffers
     ASCII_MSG_t ascii_rx = {0};
     ASCII_MSG_t ascii_tx = {0};
+
+    // Last ACK/NAK
+    uint8_t ack_id = 0;
+    bool ack_value = false;
 
 private:
     // Receive message parsing
@@ -77,8 +83,9 @@ private:
     bool Read_Ack(uint32_t timeout);
     bool Read_Bin(uint32_t timeout);
 
-    // reset RX internal state
+    // reset RX/TX internal state
     void ResetRX();
+    void ResetTX();
 
     // Serial port
     Stream * rx_stream;
