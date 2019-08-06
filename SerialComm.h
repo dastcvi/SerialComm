@@ -16,11 +16,13 @@
 #include "Arduino.h"
 #include <stdint.h>
 
-#define ASCII_DELIMITER   '#'
-#define ACK_DELIMITER     '?'
-#define BIN_DELIMITER     '!'
+#define ASCII_DELIMITER    '#'
+#define ACK_DELIMITER      '?'
+#define BIN_DELIMITER      '!'
 
-#define READ_TIMEOUT   100 // milliseconds
+#define READ_TIMEOUT       100 // milliseconds
+
+#define ASCII_BUFFER_SIZE  128
 
 enum SerialMessage_t {
     NO_MESSAGE,
@@ -33,27 +35,34 @@ struct ASCII_MSG_t {
     uint8_t msg_id;
     uint8_t num_params;
     uint8_t buffer_index;
-    char buffer[128];
+    char buffer[ASCII_BUFFER_SIZE];
 };
 
 struct BIN_MSG_t {
     uint8_t bin_id;
     uint16_t bin_length;
+    uint16_t buffer_size;
     uint8_t * bin_buffer;
 };
 
 class SerialComm {
 public:
-    SerialComm(Stream * rxstream);
+    SerialComm(Stream * stream_in);
     ~SerialComm() { };
+
+    // Attach pre-allocated buffers for binary messaging
+    void AssignBinaryRXBuffer(uint8_t * buffer, uint16_t size);
+    void AssignBinaryTXBuffer(uint8_t * buffer, uint16_t size, uint16_t num_bytes);
 
     // Receive interface
     SerialMessage_t RX();
 
     // Transmit interface
+    void TX_ASCII();
     void TX_ASCII(uint8_t msg_id);
     void TX_Ack(uint8_t msg_id, bool ack_val);
-    void TX_Bin();
+    bool TX_Bin();
+    bool TX_Bin(uint8_t bin_id);
 
     // ASCII RX buffer interface
     bool Get_uint8(uint8_t * ret_val);
@@ -79,6 +88,10 @@ public:
     ASCII_MSG_t ascii_rx = {0};
     ASCII_MSG_t ascii_tx = {0};
 
+    // Binary messages with buffers
+    BIN_MSG_t binary_rx = {0};
+    BIN_MSG_t binary_tx = {0};
+
     // Last ACK/NAK
     uint8_t ack_id = 0;
     bool ack_value = false;
@@ -94,7 +107,7 @@ private:
     void ResetTX();
 
     // Serial port
-    Stream * rx_stream;
+    Stream * serial_stream;
 
 };
 

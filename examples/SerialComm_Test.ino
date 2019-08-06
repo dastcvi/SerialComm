@@ -16,11 +16,18 @@ int32_t temp_i32 = 0;
 float temp_float = 0.0f;
 char temp_buffer[128] = {0};
 
+uint8_t bin_rx[128] = {0};
+char bin_tx[] = "Readable test binary";
+uint16_t bin_tx_length = sizeof(bin_tx);
+
 void setup()
 {
   Serial.begin(115200);
   delay(2500);
   Serial.println("Ready for messages");
+
+  ser.AssignBinaryRXBuffer(bin_rx, 128);
+  ser.AssignBinaryTXBuffer((uint8_t *) bin_tx, bin_tx_length);
 }
 
 void loop()
@@ -121,6 +128,18 @@ void loop()
     Serial.print("ACK/NAK for msg: "); Serial.println(ser.ack_id);
     Serial.print("Value: ");
     ser.ack_value ? Serial.println("ACK") : Serial.println("NAK");
+    break;
+  case BIN_MESSAGE:
+    Serial.print("Binary message: "); Serial.println(ser.binary_rx.bin_id);
+    Serial.print("Buffer: ");
+    for (int i = 0; i < ser.binary_rx.bin_length; i++) {
+      Serial.print((char) ser.binary_rx.bin_buffer[i]);
+    }
+    Serial.println();
+    if (ser.binary_rx.bin_id == 16) {
+      ser.binary_tx.bin_length = bin_tx_length;
+      ser.TX_Bin();
+    }
     break;
   case NO_MESSAGE:
   default:

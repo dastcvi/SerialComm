@@ -5,8 +5,6 @@ for a test script that exercises functionality.
 
 *Note that checksums are currently unimplemented*
 
-*Note that binary is currently unimplemented*
-
 ## Message Types
 
 Three message types are supported: ASCII with parameters, ACK/NAK, and binary.
@@ -84,9 +82,12 @@ and more are available in the `ascii_rx` struct of type `ASCII_MSG_t`.
 For an ACK/NAK message, the member variable `ack_id` contains the id being ack'ed, and the `ack_value` contains
 the ACK/NAK value as a boolean.
 
-Binary messages are in progress.
+In order to accomodate projects that need large binary messages, the binary TX and RX buffers must be
+allocated outside of the object and then "attached" using the `AssignBinaryRXBuffer()` and
+`AssignBinaryTXBuffer()` functions. These buffers are located in the `binary_rx` and `binary_tx` structs along with the size of the buffer, number of objects in it, and an ID for the binary type. Calling `TX_Bin()` sends the TX buffer, and when an RX message is received, the message is written to the RX buffer
+(unless the message is too large).
 
-## Usage
+## ASCII Message Usage
 
 For a board to use this protocol, it should implement files on top of the core to enumerate command ID's
 and to provide functions for parsing and generating each command (using the provided functions). The
@@ -100,7 +101,7 @@ one class that inherits from SerialComm. The header file could look like the fol
 #include "SerialComm.h"
 
 enum InternalMessages_t : uint8_t {
-    NO_MESSAGE = 0, // necessary
+    NO_MESSAGE = 0, // zero reserved as default
     MESSAGE1 = 1,
     // and so on...
 };
@@ -135,6 +136,44 @@ bool InternalMessaging::RX_Message1(uint8_t * param)
     // if there were subsequent parameters, they would go here
 }
 ```
+
+## Binary Usage
+
+The interface for binary messages is comparably simpler than for ASCII messages, but the software provides
+fewer utilites for using binary messages. The user must generate and parse the binary section, but the
+software handles the transmission over UART in its entirety. A benefit to needing to assign TX and RX 
+buffers to the class is that buffers of up to 65356 (uint16 max) bytes can be used for either, and multiple
+buffers could be used if desired.
+
+Say in the case from the ASCII Message Usage section the inheriting class had two global binary buffers,
+`uint8_t bin1[16]` and `uint8_t bin2[32]` to transmit. The following two functions would transmit the
+buffers:
+
+```C++
+enum BinMessages_t : uint8_t {
+    NO_BIN = 0,
+    BIN1 = 1,
+    BIN2 = 2,
+};
+
+uint8_t bin1[16];
+uint8_t bin2[32];
+
+bool InternalMessaging::TX_Bin1(uint16_t bytes_in_buffer)
+{
+    AssignBinaryTXBuffer(bin1, 16, bytes_in_buffer); // bytes_in_buffer exists in case buffer isn't full
+    TX_Bin(BIN1);
+}
+
+bool InternalMessaging::TX_Bin2(uint16_t bytes_in_buffer)
+{
+    AssignBinaryTXBuffer(bin2, 32, bytes_in_buffer); // bytes_in_buffer exists in case buffer isn't full
+    TX_Bin(BIN2);
+}
+```
+
+Receiving messages works similarly. In some cases, it makes sense to just keep one generic RX buffer 
+assigned to the class, but if the user wants to read different message types into different locations (or subsequent messages into subsequent arrays), then the user can reassign the RX buffer to do so.
 
 ## Aside on Arduino's internal serial buffering
 

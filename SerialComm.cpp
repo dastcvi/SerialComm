@@ -12,9 +12,28 @@
 
 #include "SerialComm.h"
 
-SerialComm::SerialComm(Stream * rxstream)
+// -------------------- Initialization --------------------
+
+SerialComm::SerialComm(Stream * stream_in)
 {
-    rx_stream = rxstream;
+    serial_stream = stream_in;
+
+    // explicity set the pointers to NULL
+    binary_rx.bin_buffer = NULL;
+    binary_tx.bin_buffer = NULL;
+}
+
+void SerialComm::AssignBinaryRXBuffer(uint8_t * buffer, uint16_t size)
+{
+    binary_rx.bin_buffer = buffer;
+    binary_rx.buffer_size = size;
+}
+
+void SerialComm::AssignBinaryTXBuffer(uint8_t * buffer, uint16_t size, uint16_t num_bytes)
+{
+    binary_tx.bin_buffer = buffer;
+    binary_tx.buffer_size = size;
+    binary_tx.bin_length = num_bytes;
 }
 
 // -------------------------- RX --------------------------
@@ -23,12 +42,12 @@ SerialMessage_t SerialComm::RX()
 {
     ResetRX();
 
-    if (!rx_stream->available()) return NO_MESSAGE;
+    if (!serial_stream->available()) return NO_MESSAGE;
 
     uint32_t timeout = millis() + READ_TIMEOUT;
     char rx_char = '\0';
     
-    while (timeout > millis() && -1 != (rx_char = rx_stream->read())) {
+    while (timeout > millis() && -1 != (rx_char = serial_stream->read())) {
         switch (rx_char) {
         case ASCII_DELIMITER:
             if (Read_ASCII(timeout)) {
@@ -81,15 +100,15 @@ bool SerialComm::Read_ASCII(uint32_t timeout)
     // read the message id
     while (timeout > millis() && temp < 3) {
         // check for delimiters
-        rx_char = rx_stream->peek();
+        rx_char = serial_stream->peek();
         if (rx_char == ',' || rx_char == ';') break;
 
         // add to the id buffer
-        id_buffer[temp++] = rx_stream->read();
+        id_buffer[temp++] = serial_stream->read();
     }
 
     // if the next char isn't a delimiter, there's been an error
-    rx_char = rx_stream->peek();
+    rx_char = serial_stream->peek();
     if (rx_char != ',' && rx_char != ';') return false;
 
     // convert the message id
@@ -98,7 +117,7 @@ bool SerialComm::Read_ASCII(uint32_t timeout)
     ascii_rx.msg_id = (uint8_t) temp;
 
     // read the parameters into the buffer
-    while (timeout > millis() && -1 != (rx_char = rx_stream->read())) {
+    while (timeout > millis() && -1 != (rx_char = serial_stream->read())) {
         // check for special characters
         if (';' == rx_char) {
             ascii_rx.buffer[ascii_rx.buffer_index] = '\0'; // null terminate
@@ -123,15 +142,15 @@ bool SerialComm::Read_Ack(uint32_t timeout)
     // read the message id
     while (timeout > millis() && temp < 3) {
         // check for delimiters
-        rx_char = rx_stream->peek();
+        rx_char = serial_stream->peek();
         if (rx_char == ',') break;
 
         // add to the id buffer
-        id_buffer[temp++] = rx_stream->read();
+        id_buffer[temp++] = serial_stream->read();
     }
 
     // if the next char isn't a comma, there's been an error
-    rx_char = rx_stream->read();
+    rx_char = serial_stream->read();
     if (rx_char != ',') return false;
 
     // convert the message id
@@ -140,8 +159,8 @@ bool SerialComm::Read_Ack(uint32_t timeout)
     ack_id = (uint8_t) temp;
 
     // read the ack value
-    rx_char = rx_stream->read();
-    if (';' != rx_stream->peek()) return false; // verify trailing ';' first
+    rx_char = serial_stream->read();
+    if (';' != serial_stream->peek()) return false; // verify trailing ';' first
     if ('0' == rx_char) {
         ack_value = false;
     } else if ('1' == rx_char) {
@@ -150,43 +169,148 @@ bool SerialComm::Read_Ack(uint32_t timeout)
         return false;
     }
 
-    rx_stream->read(); // read trailing ';'
+    serial_stream->read(); // read trailing ';'
 
     return true;
 }
 
 bool SerialComm::Read_Bin(uint32_t timeout)
 {
-    return false;
+    char id_buffer[4] = {0}; // uint8 up to 3 chars long
+    char length_buffer[6] = {0};
+    char rx_char = '\0';
+    unsigned int temp = 0;
+
+    // ensure rx message struct is reset
+    binary_rx.bin_length = 0;
+    binary_rx.bin_id = 0;
+
+    // ensure the destination buffer is valid
+    if (binary_rx.bin_buffer == NULL) return false;
+
+    // read the binary id
+    while (timeout > millis() && temp < 3) {
+        // check for delimiters
+        rx_char = serial_stream->peek();
+        if (rx_char == ',') break;
+
+        // add to the id buffer
+        id_buffer[temp++] = serial_stream->read();
+    }
+
+    // if timed out, flush the buffer and return error
+    if (timeout <= millis()) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // if the next char isn't a comma, there's been an error
+    rx_char = serial_stream->read();
+    if (rx_char != ',') return false;
+
+    // convert the binary id
+    if (1 != sscanf(id_buffer, "%u", &temp)) return false;
+    if (temp > 255) return false;
+    binary_rx.bin_id = (uint8_t) temp;
+
+    // read the binary length
+    temp = 0;
+    while (timeout > millis() && temp < 5) {
+        // check for delimiters
+        rx_char = serial_stream->peek();
+        if (rx_char == ';') break;
+
+        // add to the id buffer
+        length_buffer[temp++] = serial_stream->read();
+    }
+
+    // if timed out, flush the buffer and return error
+    if (timeout <= millis()) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // if the next char isn't a semicolon, there's been an error
+    rx_char = serial_stream->read();
+    if (rx_char != ';') return false;
+
+    // convert the binary length
+    if (1 != sscanf(length_buffer, "%u", &temp)) return false;
+    if (temp > 65535) return false;
+    binary_rx.bin_length = (uint16_t) temp;
+
+    // ensure we won't overflow the buffer
+    if (binary_rx.bin_length > binary_rx.buffer_size) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // read the binary section
+    temp = 0;
+    while (timeout > millis() && temp < binary_rx.bin_length) {
+        binary_rx.bin_buffer[temp++] = serial_stream->read();
+    }
+
+    // if timed out, flush the buffer and return error
+    if (timeout <= millis()) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // if the next char isn't a semicolon, there's been an error
+    rx_char = serial_stream->read();
+    if (rx_char != ';') return false;
+
+    return true;
 }
 
 // -------------------------- TX --------------------------
 
+void SerialComm::TX_ASCII()
+{
+    TX_ASCII(ascii_tx.msg_id);
+}
+
 void SerialComm::TX_ASCII(uint8_t msg_id)
 {
-    rx_stream->print(ASCII_DELIMITER);
-    rx_stream->print(msg_id);
-    if (ascii_tx.buffer_index > 0) { // todo: ensure always updated
-        rx_stream->print(ascii_tx.buffer);
+    serial_stream->print(ASCII_DELIMITER);
+    serial_stream->print(msg_id);
+    if (ascii_tx.buffer_index > 0) {
+        serial_stream->print(ascii_tx.buffer);
     }
-    rx_stream->println(';');
+    serial_stream->println(';');
     ResetTX();
 }
 
 void SerialComm::TX_Ack(uint8_t msg_id, bool ack_val)
 {
-    rx_stream->print(ACK_DELIMITER);
-    rx_stream->print(msg_id);
-    rx_stream->print(',');
-    ack_val ? rx_stream->print('1') : rx_stream->print('0');
-    rx_stream->println(';');
+    serial_stream->print(ACK_DELIMITER);
+    serial_stream->print(msg_id);
+    serial_stream->print(',');
+    ack_val ? serial_stream->print('1') : serial_stream->print('0');
+    serial_stream->println(';');
 }
 
-void SerialComm::TX_Bin()
+bool SerialComm::TX_Bin()
 {
-    rx_stream->print(BIN_DELIMITER);
-    rx_stream->println("0,0;;"); // empty message
-    // todo: finish implementing binary
+    return TX_Bin(binary_tx.bin_id);
+}
+
+bool SerialComm::TX_Bin(uint8_t bin_id)
+{
+    if (binary_tx.bin_buffer == NULL) return false;
+
+    serial_stream->print(BIN_DELIMITER);
+    serial_stream->print(bin_id);
+    serial_stream->print(",");
+    serial_stream->print(binary_tx.bin_length);
+    serial_stream->print(";");
+    for (int i = 0; i < binary_tx.bin_length; i++) {
+        serial_stream->write(binary_tx.bin_buffer[i]);
+    }
+    serial_stream->println(";");
+
+    return true;
 }
 
 // -------------------- Buffer Parsing --------------------
@@ -384,7 +508,7 @@ bool SerialComm::Get_string(char * buffer, uint8_t length)
 
     // leave room for null termination
     uint16_t max_index = ascii_rx.buffer_index + length - 1;
-    if (max_index > 127) max_index = 127;
+    if (max_index > (ASCII_BUFFER_SIZE - 1)) max_index = (ASCII_BUFFER_SIZE - 1);
 
     if (',' != ascii_rx.buffer[ascii_rx.buffer_index++]) return false; // always a leading comma
 
@@ -419,7 +543,7 @@ bool SerialComm::Add_uint16(uint16_t val)
 
 bool SerialComm::Add_uint32(uint32_t val)
 {
-    uint8_t buffer_remaining = 128 - ascii_tx.buffer_index;
+    uint8_t buffer_remaining = ASCII_BUFFER_SIZE - ascii_tx.buffer_index;
     int num_written = 0;
 
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
@@ -449,7 +573,7 @@ bool SerialComm::Add_int16(int16_t val)
 
 bool SerialComm::Add_int32(int32_t val)
 {
-    uint8_t buffer_remaining = 128 - ascii_tx.buffer_index;
+    uint8_t buffer_remaining = ASCII_BUFFER_SIZE - ascii_tx.buffer_index;
     int num_written = 0;
 
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
@@ -469,7 +593,7 @@ bool SerialComm::Add_int32(int32_t val)
 
 bool SerialComm::Add_float(float val)
 {
-    uint8_t buffer_remaining = 128 - ascii_tx.buffer_index;
+    uint8_t buffer_remaining = ASCII_BUFFER_SIZE - ascii_tx.buffer_index;
     int num_written = 0;
 
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
@@ -489,7 +613,7 @@ bool SerialComm::Add_float(float val)
 
 bool SerialComm::Add_string(const char * buffer)
 {
-    uint8_t buffer_remaining = 128 - ascii_tx.buffer_index;
+    uint8_t buffer_remaining = ASCII_BUFFER_SIZE - ascii_tx.buffer_index;
     int num_written = 0;
 
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
