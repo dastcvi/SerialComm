@@ -89,6 +89,8 @@ allocated outside of the object and then "attached" using the `AssignBinaryRXBuf
 
 ## ASCII Message Usage
 
+*For an example implementation, look at* `examples/Example_Interface`
+
 For a board to use this protocol, it should implement files on top of the core to enumerate command ID's
 and to provide functions for parsing and generating each command (using the provided functions). The
 core will provide the router that parses out the ID, checks the checksum, and places the message in a
@@ -106,7 +108,7 @@ enum InternalMessages_t : uint8_t {
     // and so on...
 };
 
-class InternalMessaging : SerialComm(&Serial1) {
+class InternalMessaging : SerialComm {
 public:
     bool TX_Message1(uint8_t param);
     bool RX_Message1(uint8_t * param);
@@ -134,6 +136,7 @@ bool InternalMessaging::RX_Message1(uint8_t * param)
 {
     if (!Get_uint8(param)) return false;
     // if there were subsequent parameters, they would go here
+    return true;
 }
 ```
 
