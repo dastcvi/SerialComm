@@ -10,6 +10,11 @@
 
 #include "MCBComm.h"
 
+MCBComm::MCBComm(Stream * serial_port)
+    : SerialComm(serial_port)
+{
+}
+
 // MCB -> DIB/PIB (with params) ---------------------------
 
 // -- MCB Motion status

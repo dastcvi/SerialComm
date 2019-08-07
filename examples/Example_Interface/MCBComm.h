@@ -13,7 +13,6 @@
 
 #include "SerialComm.h"
 
-
 enum MCBMessages_t : uint8_t {
     MCB_NO_MESSAGE = 0,
 
@@ -38,14 +37,14 @@ enum MCBMessages_t : uint8_t {
 };
 
 
-class MCBComm : SerialComm {
+class MCBComm : public SerialComm {
 public:
     MCBComm(Stream * serial_port);
     ~MCBComm() { };
 
     // MCB -> DIB/PIB (with params) -----------------------
 
-    bool TX_Motion_Status(float reel_pos, float lw_pos, float reel_torque, float reel_temp, float lw_temp);
+    bool TX_Motion_Status(float reel_pos, float lw_pos, float reel_torque, float reel_temp, float lw_temp); // todo: voltages? timestamp?
     bool RX_Motion_Status(float * reel_pos, float * lw_pos, float * reel_torque, float * reel_temp, float * lw_temp);
 
     bool TX_Error(const char * error);
@@ -66,13 +65,10 @@ public:
     bool RX_Out_Acc(float * acceleration);
 
     bool TX_In_Acc(float acceleration);
-    bool RX_Out_Acc(float * acceleration);
+    bool RX_In_Acc(float * acceleration);
 
     bool TX_Dock_Acc(float acceleration);
     bool RX_Dock_Acc(float * acceleration);
-
-private:
-    // TODO: consider generic functions to avoid repeat code
 
 };
 
