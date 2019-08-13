@@ -2,10 +2,10 @@
  * SerialComm.cpp
  * Author:  Alex St. Clair
  * Created: August 2019
- *  
+ *
  * This file implements an Arduino library (C++ class) that implements a simple, robust
  * serial (UART) protocol for inter-Arduino messaging.
- * 
+ *
  * This class doesn't define specific messages, so any project using the protocol must
  * implement message definitions on top of this class.
  */
@@ -21,6 +21,11 @@ SerialComm::SerialComm(Stream * stream_in)
     // explicity set the pointers to NULL
     binary_rx.bin_buffer = NULL;
     binary_tx.bin_buffer = NULL;
+}
+
+void SerialComm::UpdatePort(Stream * stream_in)
+{
+    serial_stream = stream_in;
 }
 
 void SerialComm::AssignBinaryRXBuffer(uint8_t * buffer, uint16_t size)
@@ -46,7 +51,7 @@ SerialMessage_t SerialComm::RX()
 
     uint32_t timeout = millis() + READ_TIMEOUT;
     char rx_char = '\0';
-    
+
     while (timeout > millis() && -1 != (rx_char = serial_stream->read())) {
         switch (rx_char) {
         case ASCII_DELIMITER:
@@ -549,7 +554,7 @@ bool SerialComm::Add_uint32(uint32_t val)
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
     // note leading comma!
     num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%u", (unsigned int) val);
-    
+
     // make sure the write was valid and not too large
     if (num_written < 1 || num_written >= buffer_remaining) {
         ResetTX();
@@ -579,7 +584,7 @@ bool SerialComm::Add_int32(int32_t val)
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
     // note leading comma!
     num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%d", (int) val);
-    
+
     // make sure the write was valid and not too large
     if (num_written < 1 || num_written >= buffer_remaining) {
         ResetTX();
@@ -599,7 +604,7 @@ bool SerialComm::Add_float(float val)
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
     // note leading comma!
     num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%f", val);
-    
+
     // make sure the write was valid and not too large
     if (num_written < 1 || num_written >= buffer_remaining) {
         ResetTX();
@@ -619,7 +624,7 @@ bool SerialComm::Add_string(const char * buffer)
     // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
     // note leading comma!
     num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%s", buffer);
-    
+
     // make sure the write was valid and not too large
     if (num_written < 1 || num_written >= buffer_remaining) {
         ResetTX();

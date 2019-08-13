@@ -2,10 +2,10 @@
  * SerialComm.h
  * Author:  Alex St. Clair
  * Created: August 2019
- *  
+ *
  * This file declares an Arduino library (C++ class) that implements a simple, robust
  * serial (UART) protocol for inter-Arduino messaging.
- * 
+ *
  * This class doesn't define specific messages, so any project using the protocol must
  * implement message definitions on top of this class.
  */
@@ -49,6 +49,9 @@ class SerialComm {
 public:
     SerialComm(Stream * stream_in);
     ~SerialComm() { };
+
+    // To allow user to change to the USB serial port for testing or debug
+    void UpdatePort(Stream * stream_in);
 
     // Attach pre-allocated buffers for binary messaging
     void AssignBinaryRXBuffer(uint8_t * buffer, uint16_t size);
