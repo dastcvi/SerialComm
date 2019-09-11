@@ -14,6 +14,8 @@
 
 #include "Serialize.h"
 
+#define NULL nullptr
+
 // Default to big endian
 Endianness_t endianness = SERIALIZE_BIG_ENDIAN;
 
@@ -21,6 +23,9 @@ Endianness_t endianness = SERIALIZE_BIG_ENDIAN;
 
 bool BufferAddUInt8(uint8_t data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
+    // check for NULL pointers
+    if (NULL == buffer || NULL == curr_index) return false;
+
     // ensure we don't overrun the buffer
     if (*curr_index + sizeof(uint8_t) >= buffer_size) return false;
 
@@ -31,6 +36,9 @@ bool BufferAddUInt8(uint8_t data, uint8_t * buffer, uint16_t buffer_size, uint16
 
 bool BufferAddUInt16(uint16_t data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
+    // check for NULL pointers
+    if (NULL == buffer || NULL == curr_index) return false;
+
     // ensure we don't overrun the buffer
     if (*curr_index + sizeof(uint16_t) >= buffer_size) return false;
 
@@ -47,6 +55,9 @@ bool BufferAddUInt16(uint16_t data, uint8_t * buffer, uint16_t buffer_size, uint
 
 bool BufferAddUInt32(uint32_t data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
+    // check for NULL pointers
+    if (NULL == buffer || NULL == curr_index) return false;
+
     // ensure we don't overrun the buffer
     if (*curr_index + sizeof(uint32_t) >= buffer_size) return false;
 
@@ -91,6 +102,9 @@ bool BufferAddFloat(float data, uint8_t * buffer, uint16_t buffer_size, uint16_t
 
 bool BufferGetUInt8(uint8_t * data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
+    // check for NULL pointers
+    if (NULL == data || NULL == buffer || NULL == curr_index) return false;
+
     // ensure we don't overrun the buffer
     if (*curr_index + sizeof(uint8_t) >= buffer_size) return false;
 
@@ -101,6 +115,9 @@ bool BufferGetUInt8(uint8_t * data, uint8_t * buffer, uint16_t buffer_size, uint
 
 bool BufferGetUInt16(uint16_t * data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
+    // check for NULL pointers
+    if (NULL == data || NULL == buffer || NULL == curr_index) return false;
+
     // ensure we don't overrun the buffer
     if (*curr_index + sizeof(uint16_t) >= buffer_size) return false;
 
@@ -121,6 +138,9 @@ bool BufferGetUInt16(uint16_t * data, uint8_t * buffer, uint16_t buffer_size, ui
 
 bool BufferGetUInt32(uint32_t * data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
+    // check for NULL pointers
+    if (NULL == data || NULL == buffer || NULL == curr_index) return false;
+
     // ensure we don't overrun the buffer
     if (*curr_index + sizeof(uint32_t) >= buffer_size) return false;
 

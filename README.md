@@ -3,6 +3,9 @@
 A simple, robust protocol and class for inter-Arduino UART communication. See examples/SerialComm_Test.ino
 for a test script that exercises functionality.
 
+The library also provides generic functions for serializing variables onto a uint8_t buffer for use when
+constructing binary messages to send over serial. See examples/Serialize_Test.ino for the test/example.
+
 *Note that checksums are currently unimplemented*
 
 ## Message Types
@@ -19,8 +22,8 @@ The basic structure of an internal message is as follows:
 
 `msg_id`:   the command number range 0:255 (uint8_t) expressed in ASCII
 
-`param_n`:  The nth type-ambiguous param associated with the command. The param can even be a string 
-containing whitespace, but cannot contain restricted chars. The params (including the leading comma 
+`param_n`:  The nth type-ambiguous param associated with the command. The param can even be a string
+containing whitespace, but cannot contain restricted chars. The params (including the leading comma
 for each parameter) can take up anywhere from 0 - 127 chars.
 
 `checksum`: the TBD method checksum to verify the message integrity (future work, optional)
@@ -67,6 +70,23 @@ The structure of a binary message is as follows:
 
 `checksum`: the TBD method checksum to verify the message integrity (future work, optional)
 
+## Serialize Functions
+
+The functions for serializing variables onto a uint8_t binary buffer are located in the Serialize.cpp and
+Serialize.h files.
+
+The functions for adding a variable to the buffer all take the data, buffer pointer,
+size of the buffer, and a pointer to a variable tracking the current index to place bytes in the buffer.
+The functions check for null pointers and ensure that the buffer won't be overwritten before serializing the
+data onto the buffer. In the case of an error, the function returns false without writing to the buffer or
+incrementing the index variable. Otherwise, the function increments the index variable according to the bytes
+written.
+
+The functions for reading variables from the buffer have the same interface and safety considerations, except
+that the result variable must be passed as a pointer. It won't be written to unless all safety checks are passed.
+
+*Note that the maximum buffer size supported is 65531 (which is UINT16_MAX - 4)*
+
 ## Description of provided software
 
 The software core, SerialComm, doesn't maintain message types and is agnostic of the command IDs. It
@@ -75,7 +95,7 @@ by calling the `SerialComm.RX()` function, which returns the message type (`Seri
 
 For an ASCII message, this entails parsing out the command id, verifying the checksum, and separating out a
 string containing only the `,param_1,param_2,...,param_n` message (if present). Note that a leading comma
-is included for each parameter. The core also provides standard, safe functions for parsing out and 
+is included for each parameter. The core also provides standard, safe functions for parsing out and
 generating individual params of different types from and for the message string. The message, its id, buffer,
 and more are available in the `ascii_rx` struct of type `ASCII_MSG_t`.
 
@@ -144,7 +164,7 @@ bool InternalMessaging::RX_Message1(uint8_t * param)
 
 The interface for binary messages is comparably simpler than for ASCII messages, but the software provides
 fewer utilites for using binary messages. The user must generate and parse the binary section, but the
-software handles the transmission over UART in its entirety. A benefit to needing to assign TX and RX 
+software handles the transmission over UART in its entirety. A benefit to needing to assign TX and RX
 buffers to the class is that buffers of up to 65356 (uint16 max) bytes can be used for either, and multiple
 buffers could be used if desired.
 
@@ -175,7 +195,7 @@ bool InternalMessaging::TX_Bin2(uint16_t bytes_in_buffer)
 }
 ```
 
-Receiving messages works similarly. In some cases, it makes sense to just keep one generic RX buffer 
+Receiving messages works similarly. In some cases, it makes sense to just keep one generic RX buffer
 assigned to the class, but if the user wants to read different message types into different locations (or subsequent messages into subsequent arrays), then the user can reassign the RX buffer to do so.
 
 ## Aside on Arduino's internal serial buffering
