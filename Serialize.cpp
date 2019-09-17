@@ -27,7 +27,7 @@ bool BufferAddUInt8(uint8_t data, uint8_t * buffer, uint16_t buffer_size, uint16
     if (NULL == buffer || NULL == curr_index) return false;
 
     // ensure we don't overrun the buffer
-    if (*curr_index + sizeof(uint8_t) >= buffer_size) return false;
+    if (*curr_index + sizeof(uint8_t) > buffer_size) return false;
 
     buffer[(*curr_index)++] = data;
 
@@ -40,7 +40,7 @@ bool BufferAddUInt16(uint16_t data, uint8_t * buffer, uint16_t buffer_size, uint
     if (NULL == buffer || NULL == curr_index) return false;
 
     // ensure we don't overrun the buffer
-    if (*curr_index + sizeof(uint16_t) >= buffer_size) return false;
+    if (*curr_index + sizeof(uint16_t) > buffer_size) return false;
 
     if (SERIALIZE_BIG_ENDIAN == endianness) {
         buffer[(*curr_index)++] = (data >> 8) & 0xFF;
@@ -59,7 +59,7 @@ bool BufferAddUInt32(uint32_t data, uint8_t * buffer, uint16_t buffer_size, uint
     if (NULL == buffer || NULL == curr_index) return false;
 
     // ensure we don't overrun the buffer
-    if (*curr_index + sizeof(uint32_t) >= buffer_size) return false;
+    if (*curr_index + sizeof(uint32_t) > buffer_size) return false;
 
     if (SERIALIZE_BIG_ENDIAN == endianness) {
         buffer[(*curr_index)++] = (data >> 24) & 0xFF;
@@ -93,8 +93,8 @@ bool BufferAddInt32(int32_t data, uint8_t * buffer, uint16_t buffer_size, uint16
 
 bool BufferAddFloat(float data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
-    // will throw compiler warning for cast, but this is the best way to do this
-    return BufferAddUInt32(*((uint32_t *) &data), buffer, buffer_size, curr_index);
+    uint32_t * temp = (uint32_t *) &data;
+    return BufferAddUInt32(*temp, buffer, buffer_size, curr_index);
 }
 
 
@@ -106,7 +106,7 @@ bool BufferGetUInt8(uint8_t * data, uint8_t * buffer, uint16_t buffer_size, uint
     if (NULL == data || NULL == buffer || NULL == curr_index) return false;
 
     // ensure we don't overrun the buffer
-    if (*curr_index + sizeof(uint8_t) >= buffer_size) return false;
+    if (*curr_index + sizeof(uint8_t) > buffer_size) return false;
 
     *data = buffer[(*curr_index)++];
 
@@ -119,7 +119,7 @@ bool BufferGetUInt16(uint16_t * data, uint8_t * buffer, uint16_t buffer_size, ui
     if (NULL == data || NULL == buffer || NULL == curr_index) return false;
 
     // ensure we don't overrun the buffer
-    if (*curr_index + sizeof(uint16_t) >= buffer_size) return false;
+    if (*curr_index + sizeof(uint16_t) > buffer_size) return false;
 
     *data = 0;
 
@@ -142,7 +142,7 @@ bool BufferGetUInt32(uint32_t * data, uint8_t * buffer, uint16_t buffer_size, ui
     if (NULL == data || NULL == buffer || NULL == curr_index) return false;
 
     // ensure we don't overrun the buffer
-    if (*curr_index + sizeof(uint32_t) >= buffer_size) return false;
+    if (*curr_index + sizeof(uint32_t) > buffer_size) return false;
 
     *data = 0;
 
@@ -199,10 +199,13 @@ bool BufferGetInt32(int32_t * data, uint8_t * buffer, uint16_t buffer_size, uint
 bool BufferGetFloat(float * data, uint8_t * buffer, uint16_t buffer_size, uint16_t * curr_index)
 {
     uint32_t placeholder = 0;
+    float * temp;
 
     if (!BufferGetUInt32(&placeholder, buffer, buffer_size, curr_index)) return false;
 
-    *data = *((float *) &placeholder); // will throw compiler warning, but this is the best way to do this
+    // cast the integer into a temporary float pointer variable
+    temp = (float *) &placeholder;
+    *data = *temp;
 
     return true;
 }
