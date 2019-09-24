@@ -103,7 +103,7 @@ void setup()
   output_test &= (i32_in == i32_out);
   output_test &= (float_in == float_out);
 
-  if (input_test) {
+  if (output_test) {
     Serial.println("Passed output test (big endian)");
   } else {
     Serial.println("FAILED output test (big endian)");
@@ -113,6 +113,7 @@ void setup()
   endianness = SERIALIZE_LITTLE_ENDIAN;
 
   curr_index = 0;
+  input_test = true;
   input_test &= BufferAddUInt8(u8_in, test_buffer, 128, &curr_index);
   input_test &= BufferAddUInt16(u16_in, test_buffer, 128, &curr_index);
   input_test &= BufferAddUInt32(u32_in, test_buffer, 128, &curr_index);
@@ -128,7 +129,7 @@ void setup()
   }
 
   curr_index = 0;
-
+  output_test = true;
   output_test &= BufferGetUInt8(&u8_out, test_buffer, 128, &curr_index);
   output_test &= BufferGetUInt16(&u16_out, test_buffer, 128, &curr_index);
   output_test &= BufferGetUInt32(&u32_out, test_buffer, 128, &curr_index);
@@ -144,7 +145,7 @@ void setup()
   output_test &= (i32_in == i32_out);
   output_test &= (float_in == float_out);
 
-  if (input_test) {
+  if (output_test) {
     Serial.println("Passed output test (little endian)");
   } else {
     Serial.println("FAILED output test (little endian)");

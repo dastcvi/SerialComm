@@ -131,8 +131,6 @@ bool BufferGetUInt16(uint16_t * data, uint8_t * buffer, uint16_t buffer_size, ui
         *data |= ((uint16_t) buffer[(*curr_index)++]) << 8;
     }
 
-    *data = buffer[(*curr_index)++];
-
     return true;
 }
 
@@ -157,8 +155,6 @@ bool BufferGetUInt32(uint32_t * data, uint8_t * buffer, uint16_t buffer_size, ui
         *data |= ((uint32_t) buffer[(*curr_index)++]) << 16;
         *data |= ((uint32_t) buffer[(*curr_index)++]) << 24;
     }
-
-    *data = buffer[(*curr_index)++];
 
     return true;
 }
