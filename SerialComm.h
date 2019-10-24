@@ -35,6 +35,7 @@ struct ASCII_MSG_t {
     uint8_t msg_id;
     uint8_t num_params;
     uint8_t buffer_index;
+    bool checksum_valid;
     char buffer[ASCII_BUFFER_SIZE];
 };
 
@@ -42,6 +43,7 @@ struct BIN_MSG_t {
     uint8_t bin_id;
     uint16_t bin_length;
     uint16_t buffer_size;
+    bool checksum_valid;
     uint8_t * bin_buffer;
 };
 
@@ -98,6 +100,7 @@ public:
     // Last ACK/NAK
     uint8_t ack_id = 0;
     bool ack_value = false;
+    bool ack_checksum = false;
 
 private:
     // Receive message parsing
@@ -118,6 +121,10 @@ private:
     void WriteChar(char new_char);
     void WriteASCIIu8(uint8_t new_u8);
     void WriteASCIIu16(uint16_t new_u16);
+
+    // read or write the checksum (concatenate a and b into a uint16_t)
+    bool ReadChecksum(uint32_t timeout);
+    void WriteChecksum();
 
     // checksum calculation and values
     void UpdateChecksum(uint8_t new_byte);
