@@ -109,6 +109,22 @@ private:
     void ResetRX();
     void ResetTX();
 
+    // deal with safely reading characters and updating the checksum
+    bool GetNextChar(char * new_char);
+    bool ReadSpecificChar(uint32_t timeout, char specific_char);
+
+    // deal with safely writing characters and updating the checksum
+    void WriteBinByte(uint8_t new_byte);
+    void WriteChar(char new_char);
+    void WriteASCIIu8(uint8_t new_u8);
+    void WriteASCIIu16(uint16_t new_u16);
+
+    // checksum calculation and values
+    void UpdateChecksum(uint8_t new_byte);
+    void ResetChecksum();
+    uint8_t check_a = 0;
+    uint8_t check_b = 0;
+
     // Serial port
     Stream * serial_stream;
 
