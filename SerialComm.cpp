@@ -76,9 +76,8 @@ SerialMessage_t SerialComm::RX()
     uint32_t timeout = millis() + READ_TIMEOUT;
     char rx_char = '\0';
 
-
+    ResetChecksum();
     while (timeout > millis() && GetNextChar(&rx_char)) {
-        ResetChecksum();
         switch (rx_char) {
         case ASCII_DELIMITER:
             if (Read_ASCII(timeout)) {
@@ -100,6 +99,7 @@ SerialMessage_t SerialComm::RX()
                 return NO_MESSAGE;
             }
         default:
+            ResetChecksum();
             break;
         }
     }
