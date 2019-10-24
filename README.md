@@ -6,7 +6,7 @@ for a test script that exercises functionality.
 The library also provides generic functions for serializing variables onto a uint8_t buffer for use when
 constructing binary messages to send over serial. See examples/Serialize_Test.ino for the test/example.
 
-*Note that checksums are currently unimplemented*
+*Checksums are implemented as of v1.1*
 
 ## Message Types
 
@@ -26,7 +26,7 @@ The basic structure of an internal message is as follows:
 containing whitespace, but cannot contain restricted chars. The params (including the leading comma
 for each parameter) can take up anywhere from 0 - 127 chars.
 
-`checksum`: the TBD method checksum to verify the message integrity (future work, optional)
+`checksum`: ascii decimal unsigned 16-bit integer
 
 Special characters that can't be used in the param_n sections:
 `,` or `;` or `#` or `?` or `!`
@@ -52,7 +52,7 @@ The structure of an ACK/NAK message is as follows:
 
 `ack/nak`:  the ACK or NAK expressed in an ascii '0' or '1'
 
-`checksum`: the TBD method checksum to verify the message integrity (future work, optional)
+`checksum`: ascii decimal unsigned 16-bit integer
 
 ### Binary message
 
@@ -68,7 +68,22 @@ The structure of a binary message is as follows:
 
 `bin`:      binary section
 
-`checksum`: the TBD method checksum to verify the message integrity (future work, optional)
+`checksum`: ascii decimal unsigned 16-bit integer
+
+## Checksum
+
+A simple, two-byte checksum is used that implements the following algorithm given a new byte. The `check_a` and `check_b` bytes are initialized to zero and updated with each byte.
+
+```C++
+uint8_t check_a = 0;
+uint8_t check_b = 0;
+
+// for each new byte:
+check_a = check_a + new_byte;
+check_b = check_b + check_a;
+```
+
+The checksum bytes are concatenated into an unsigned 16-bit integer (`check_a` is the MSB) and added as an ascii decimal integer to the message. When a new message is read, the `RX()` function will return the message whether or not the checksum is valid. If the user wants to use the checksum, there is a flag that is set for the checksum result for each message type.
 
 ## Serialize Functions
 
