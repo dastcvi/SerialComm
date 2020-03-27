@@ -47,8 +47,6 @@ public:
     bool TX_Motion_Status(float reel_pos, float lw_pos, float reel_torque, float reel_temp, float lw_temp); // todo: voltages? timestamp?
     bool RX_Motion_Status(float * reel_pos, float * lw_pos, float * reel_torque, float * reel_temp, float * lw_temp);
 
-    bool TX_Error(const char * error); // string message RX is automatic
-
     // DIB/PIB -> MCB (with params) -----------------------
 
     bool TX_Reel_Out(float num_revs, float speed);

@@ -112,8 +112,13 @@ void loop()
       }
       ser.TX_ASCII(17);
     case 200:
-      ser.Add_string("Test string");
-      ser.TX_String(200);
+      ser.TX_String(200, "Middle test string");
+      break;
+    case 201:
+      ser.TX_String(201, "The longest test string");
+      break;
+    case 202:
+      ser.TX_String(202, "Short string");
       break;
     default:
       break;

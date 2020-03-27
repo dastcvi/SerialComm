@@ -466,13 +466,17 @@ bool SerialComm::TX_Bin(uint8_t bin_id)
     return true;
 }
 
-void SerialComm::TX_String()
+void SerialComm::TX_String(uint8_t str_id, const char * msg)
 {
-    TX_String(string_tx.str_id);
-}
+    uint16_t length = 0;
 
-void SerialComm::TX_String(uint8_t str_id)
-{
+    while ('\0' != msg[length] && length < (STRING_BUFFER_SIZE - 1)) {
+        string_tx.buffer[length] = msg[length];
+        length++;
+    }
+
+    string_tx.str_length = length;
+
     ResetChecksum();
     WriteChar(STRING_DELIMITER);
     WriteASCIIu8(str_id);
@@ -485,12 +489,6 @@ void SerialComm::TX_String(uint8_t str_id)
     WriteChar(';');
     WriteChecksum();
     serial_stream->print('\n');
-}
-
-void SerialComm::TX_String(uint8_t str_id, const char * msg)
-{
-    Add_string(msg);
-    TX_String(str_id);
 }
 
 // --------------------- TX Helpers -----------------------
@@ -853,16 +851,4 @@ bool SerialComm::Add_float(float val)
     ascii_tx.buffer_index += num_written;
 
     return true;
-}
-
-void SerialComm::Add_string(const char * msg)
-{
-    uint16_t length = 0;
-
-    while ('\0' != msg[length] && length < (STRING_BUFFER_SIZE - 1)) {
-        string_tx.buffer[length] = msg[length];
-        length++;
-    }
-
-    string_tx.str_length = length;
 }

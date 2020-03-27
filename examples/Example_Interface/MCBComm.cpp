@@ -52,17 +52,6 @@ bool MCBComm::RX_Motion_Status(float * reel_pos, float * lw_pos, float * reel_to
     return true;
 }
 
-// -- MCB error string
-
-bool MCBComm::TX_Error(const char * error)
-{
-    if (Add_string(error)) return false;
-
-    TX_String(MCB_ERROR);
-
-    return true;
-}
-
 // DIB/PIB -> MCB (with params) ---------------------------
 
 // -- Reel out command

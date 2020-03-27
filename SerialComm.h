@@ -78,8 +78,6 @@ public:
     void TX_Ack(uint8_t msg_id, bool ack_val);
     bool TX_Bin();
     bool TX_Bin(uint8_t bin_id);
-    void TX_String();
-    void TX_String(uint8_t str_id);
     void TX_String(uint8_t str_id, const char * msg);
 
     // ASCII RX buffer interface
@@ -99,9 +97,6 @@ public:
     bool Add_int16(int16_t val);
     bool Add_int32(int32_t val);
     bool Add_float(float val);
-
-    // String TX buffer interface
-    void Add_string(const char * msg);
 
     // ASCII messages with buffers
     ASCII_MSG_t ascii_rx = {0};
