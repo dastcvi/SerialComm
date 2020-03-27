@@ -7,6 +7,7 @@ The library also provides generic functions for serializing variables onto a uin
 constructing binary messages to send over serial. See examples/Serialize_Test.ino for the test/example.
 
 *Checksums are implemented as of v1.1*
+
 *Strings have been moved to an independent message type (away from ASCII) as of v2.0*
 
 ## Message Types
