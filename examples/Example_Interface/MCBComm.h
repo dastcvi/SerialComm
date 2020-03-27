@@ -2,7 +2,7 @@
  *  MCBComm.h
  *  Author:  Alex St. Clair
  *  Created: August 2019
- *  
+ *
  *  This file declares an Arduino library (C++ class) that implements the communication
  *  between the MCB and the DIB/PIB. The class inherits its protocol from the SerialComm
  *  class.
@@ -47,8 +47,7 @@ public:
     bool TX_Motion_Status(float reel_pos, float lw_pos, float reel_torque, float reel_temp, float lw_temp); // todo: voltages? timestamp?
     bool RX_Motion_Status(float * reel_pos, float * lw_pos, float * reel_torque, float * reel_temp, float * lw_temp);
 
-    bool TX_Error(const char * error);
-    bool RX_Error(char * error, uint8_t buffer_size);
+    bool TX_Error(const char * error); // string message RX is automatic
 
     // DIB/PIB -> MCB (with params) -----------------------
 

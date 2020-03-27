@@ -2,7 +2,7 @@
  *  MCBComm.cpp
  *  Author:  Alex St. Clair
  *  Created: August 2019
- *  
+ *
  *  This file implements an Arduino library (C++ class) that implements the communication
  *  between the MCB and the DIB/PIB. The class inherits its protocol from the SerialComm
  *  class.
@@ -58,16 +58,10 @@ bool MCBComm::TX_Error(const char * error)
 {
     if (Add_string(error)) return false;
 
-    TX_ASCII(MCB_ERROR);
+    TX_String(MCB_ERROR);
 
     return true;
 }
-
-bool MCBComm::RX_Error(char * error, uint8_t buffer_size)
-{
-    return Get_string(error, buffer_size);
-}
-
 
 // DIB/PIB -> MCB (with params) ---------------------------
 

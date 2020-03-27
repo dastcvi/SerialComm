@@ -98,6 +98,12 @@ SerialMessage_t SerialComm::RX()
             } else {
                 return NO_MESSAGE;
             }
+        case STRING_DELIMITER:
+            if (Read_String(timeout)) {
+                return STRING_MESSAGE;
+            } else {
+                return NO_MESSAGE;
+            }
         default:
             ResetChecksum();
             break;
@@ -211,7 +217,8 @@ bool SerialComm::Read_Ack(uint32_t timeout)
         return false;
     }
 
-    ReadSpecificChar(timeout, ';');
+    // the message should end with a semi-colon before the checksum
+    if (!ReadSpecificChar(timeout, ';')) return false;
 
     ack_checksum = ReadChecksum(timeout);
 
@@ -252,7 +259,7 @@ bool SerialComm::Read_Bin(uint32_t timeout)
     }
 
     // if the next char isn't a comma, there's been an error
-    ReadSpecificChar(timeout, ',');
+    if (!ReadSpecificChar(timeout, ',')) return false;
 
     // convert the binary id
     if (1 != sscanf(id_buffer, "%u", &temp)) return false;
@@ -279,7 +286,7 @@ bool SerialComm::Read_Bin(uint32_t timeout)
     }
 
     // if the next char isn't a semicolon, there's been an error
-    ReadSpecificChar(timeout, ';');
+    if (!ReadSpecificChar(timeout, ';')) return false;
 
     // convert the binary length
     if (1 != sscanf(length_buffer, "%u", &temp)) return false;
@@ -304,10 +311,99 @@ bool SerialComm::Read_Bin(uint32_t timeout)
         return false;
     }
 
-    // if the next char isn't a semicolon, there's been an error
-    ReadSpecificChar(timeout, ';');
+    // the message should end with a semi-colon before the checksum
+    if (!ReadSpecificChar(timeout, ';')) return false;
 
     binary_rx.checksum_valid = ReadChecksum(timeout);
+
+    return true;
+}
+
+bool SerialComm::Read_String(uint32_t timeout)
+{
+    char id_buffer[4] = {0}; // uint8 up to 3 chars long
+    char length_buffer[6] = {0};
+    char rx_char = '\0';
+    unsigned int temp = 0;
+    int read_ret = -1;
+
+    // ensure rx message struct is reset
+    string_rx.str_length = 0;
+    string_rx.str_id = 0;
+
+    // read the string id
+    while (timeout > millis() && temp < 3) {
+        // check for delimiters
+        read_ret = serial_stream->peek();
+        if (-1 == read_ret) continue;
+        rx_char = (char) read_ret;
+        if (rx_char == ',') break;
+
+        // add to the id buffer
+        if (GetNextChar(&rx_char)) id_buffer[temp++] = rx_char;
+    }
+
+    // if timed out, flush the buffer and return error
+    if (timeout <= millis()) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // if the next char isn't a comma, there's been an error
+    if (!ReadSpecificChar(timeout, ',')) return false;
+
+    // convert the string id
+    if (1 != sscanf(id_buffer, "%u", &temp)) return false;
+    if (temp > 255) return false;
+    string_rx.str_id = (uint8_t) temp;
+
+    // read the string length
+    temp = 0;
+    while (timeout > millis() && temp < 5) {
+        // check for delimiters
+        read_ret = serial_stream->peek();
+        if (-1 == read_ret) continue;
+        rx_char = (char) read_ret;
+        if (rx_char == ';') break;
+
+        // add to the length buffer
+        if (GetNextChar(&rx_char)) length_buffer[temp++] = rx_char;
+    }
+
+    // if timed out, flush the buffer and return error
+    if (timeout <= millis()) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // if the next char isn't a semicolon, there's been an error
+    if (!ReadSpecificChar(timeout, ';')) return false;
+
+    // convert the string length
+    if (1 != sscanf(length_buffer, "%u", &temp)) return false;
+    if (temp > 65535) return false;
+    string_rx.str_length = (uint16_t) temp;
+
+    // read the string section
+    temp = 0;
+    while (timeout > millis() && temp < string_rx.str_length && temp < (STRING_BUFFER_SIZE-1)) {
+        if (GetNextChar(&rx_char)) string_rx.buffer[temp++] = (uint8_t) rx_char;
+    }
+
+    // if timed out, flush the buffer and return error
+    if (timeout <= millis()) {
+        serial_stream->flush();
+        return false;
+    }
+
+    // null-terminate the buffer
+    string_rx.buffer[temp] = '\0';
+
+
+    // the message should end with a semi-colon before the checksum
+    if (!ReadSpecificChar(timeout, ';')) return false;
+
+    string_rx.checksum_valid = ReadChecksum(timeout);
 
     return true;
 }
@@ -368,6 +464,33 @@ bool SerialComm::TX_Bin(uint8_t bin_id)
     serial_stream->print('\n');
 
     return true;
+}
+
+void SerialComm::TX_String()
+{
+    TX_String(string_tx.str_id);
+}
+
+void SerialComm::TX_String(uint8_t str_id)
+{
+    ResetChecksum();
+    WriteChar(STRING_DELIMITER);
+    WriteASCIIu8(str_id);
+    WriteChar(',');
+    WriteASCIIu8(string_tx.str_length);
+    WriteChar(';');
+    for (int i = 0; i < string_tx.str_length; i++) {
+        WriteBinByte(string_tx.buffer[i]);
+    }
+    WriteChar(';');
+    WriteChecksum();
+    serial_stream->print('\n');
+}
+
+void SerialComm::TX_String(uint8_t str_id, const char * msg)
+{
+    Add_string(msg);
+    TX_String(str_id);
 }
 
 // --------------------- TX Helpers -----------------------
@@ -650,33 +773,6 @@ bool SerialComm::Get_float(float * ret_val)
     return true;
 }
 
-bool SerialComm::Get_string(char * buffer, uint8_t length)
-{
-    uint8_t buffer_index = 0;
-
-    // leave room for null termination
-    uint16_t max_index = ascii_rx.buffer_index + length - 1;
-    if (max_index > (ASCII_BUFFER_SIZE - 1)) max_index = (ASCII_BUFFER_SIZE - 1);
-
-    if (',' != ascii_rx.buffer[ascii_rx.buffer_index++]) return false; // always a leading comma
-
-    while (ascii_rx.buffer_index <= max_index) {
-        if (',' == ascii_rx.buffer[ascii_rx.buffer_index] || '\0' == ascii_rx.buffer[ascii_rx.buffer_index]) {
-            break;
-        }
-
-        buffer[buffer_index++] = ascii_rx.buffer[ascii_rx.buffer_index++];
-    }
-
-    // ensure next char is ',' or '\0'
-    if (',' != ascii_rx.buffer[ascii_rx.buffer_index] && '\0' != ascii_rx.buffer[ascii_rx.buffer_index]) return false;
-
-    // null terminate the buffer
-    buffer[buffer_index] = '\0';
-
-    return true;
-}
-
 // -------------------- Buffer Addition -------------------
 
 bool SerialComm::Add_uint8(uint8_t val)
@@ -759,22 +855,14 @@ bool SerialComm::Add_float(float val)
     return true;
 }
 
-bool SerialComm::Add_string(const char * buffer)
+void SerialComm::Add_string(const char * msg)
 {
-    uint8_t buffer_remaining = ASCII_BUFFER_SIZE - ascii_tx.buffer_index;
-    int num_written = 0;
+    uint16_t length = 0;
 
-    // snprintf will return the number of chars it could write, but won't write more than buffer_remaining
-    // note leading comma!
-    num_written = snprintf(ascii_tx.buffer + ascii_tx.buffer_index, buffer_remaining, ",%s", buffer);
-
-    // make sure the write was valid and not too large
-    if (num_written < 1 || num_written >= buffer_remaining) {
-        ResetTX();
-        return false;
+    while ('\0' != msg[length] && length < (STRING_BUFFER_SIZE - 1)) {
+        string_tx.buffer[length] = msg[length];
+        length++;
     }
 
-    ascii_tx.buffer_index += num_written;
-
-    return true;
+    string_tx.str_length = length;
 }

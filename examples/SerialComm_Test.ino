@@ -2,7 +2,7 @@
  *  Author: Alex St. Clair
  *  Created: July 2019
  */
- 
+
 #include <SerialComm.h>
 
 SerialComm ser(&Serial);
@@ -27,7 +27,7 @@ void setup()
   Serial.println("Ready for messages");
 
   ser.AssignBinaryRXBuffer(bin_rx, 128);
-  ser.AssignBinaryTXBuffer((uint8_t *) bin_tx, bin_tx_length);
+  ser.AssignBinaryTXBuffer((uint8_t *) bin_tx, bin_tx_length, bin_tx_length);
 }
 
 void loop()
@@ -36,7 +36,7 @@ void loop()
   case ASCII_MESSAGE:
     Serial.print("Received message: "); Serial.println(ser.ascii_rx.msg_id);
     //Serial.print("Buffer: "); Serial.println(ser.ascii_rx.buffer);
-    
+
     // test cases
     switch (ser.ascii_rx.msg_id) {
     case 32:
@@ -62,11 +62,6 @@ void loop()
         Serial.print("float: "); Serial.println(temp_float);
       } else {
         Serial.println("float: error");
-      }
-      if (ser.Get_string(temp_buffer, 128)) {
-        Serial.print("string: "); Serial.println(temp_buffer);
-      } else {
-        Serial.println("string: error");
       }
       break;
     case 66:
@@ -115,11 +110,11 @@ void loop()
         Serial.println("Error adding float");
         break;
       }
-      if (!ser.Add_string("test string")) {
-        Serial.println("Error adding string");
-        break;
-      }
       ser.TX_ASCII(17);
+    case 200:
+      ser.Add_string("Test string");
+      ser.TX_String(200);
+      break;
     default:
       break;
     }
@@ -137,9 +132,12 @@ void loop()
     }
     Serial.println();
     if (ser.binary_rx.bin_id == 16) {
-      ser.binary_tx.bin_length = bin_tx_length;
       ser.TX_Bin();
     }
+    break;
+  case STRING_MESSAGE:
+    Serial.print("String message: "); Serial.println(ser.string_rx.str_id);
+    Serial.println(ser.string_rx.buffer);
     break;
   case NO_MESSAGE:
   default:
@@ -147,4 +145,3 @@ void loop()
   }
   delay(500);
 }
-

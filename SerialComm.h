@@ -19,16 +19,19 @@
 #define ASCII_DELIMITER    '#'
 #define ACK_DELIMITER      '?'
 #define BIN_DELIMITER      '!'
+#define STRING_DELIMITER   '"'
 
 #define READ_TIMEOUT       100 // milliseconds
 
 #define ASCII_BUFFER_SIZE  128
+#define STRING_BUFFER_SIZE 128
 
 enum SerialMessage_t {
     NO_MESSAGE,
     ASCII_MESSAGE,
     ACK_MESSAGE,
-    BIN_MESSAGE
+    BIN_MESSAGE,
+    STRING_MESSAGE
 };
 
 struct ASCII_MSG_t {
@@ -37,6 +40,13 @@ struct ASCII_MSG_t {
     uint8_t buffer_index;
     bool checksum_valid;
     char buffer[ASCII_BUFFER_SIZE];
+};
+
+struct STRING_MSG_t {
+    uint8_t str_id;
+    uint16_t str_length;
+    bool checksum_valid;
+    char buffer[STRING_BUFFER_SIZE];
 };
 
 struct BIN_MSG_t {
@@ -68,6 +78,9 @@ public:
     void TX_Ack(uint8_t msg_id, bool ack_val);
     bool TX_Bin();
     bool TX_Bin(uint8_t bin_id);
+    void TX_String();
+    void TX_String(uint8_t str_id);
+    void TX_String(uint8_t str_id, const char * msg);
 
     // ASCII RX buffer interface
     bool Get_uint8(uint8_t * ret_val);
@@ -77,7 +90,6 @@ public:
     bool Get_int16(int16_t * ret_val);
     bool Get_int32(int32_t * ret_val);
     bool Get_float(float * ret_val);
-    bool Get_string(char * buffer, uint8_t length);
 
     // ASCII TX buffer interface
     bool Add_uint8(uint8_t val);
@@ -87,7 +99,9 @@ public:
     bool Add_int16(int16_t val);
     bool Add_int32(int32_t val);
     bool Add_float(float val);
-    bool Add_string(const char * buffer);
+
+    // String TX buffer interface
+    void Add_string(const char * msg);
 
     // ASCII messages with buffers
     ASCII_MSG_t ascii_rx = {0};
@@ -96,6 +110,10 @@ public:
     // Binary messages with buffers
     BIN_MSG_t binary_rx = {0};
     BIN_MSG_t binary_tx = {0};
+
+    // String messages with buffers
+    STRING_MSG_t string_rx = {0};
+    STRING_MSG_t string_tx = {0};
 
     // Last ACK/NAK
     uint8_t ack_id = 0;
@@ -107,6 +125,7 @@ private:
     bool Read_ASCII(uint32_t timeout);
     bool Read_Ack(uint32_t timeout);
     bool Read_Bin(uint32_t timeout);
+    bool Read_String(uint32_t timeout);
 
     // reset RX/TX internal state
     void ResetRX();

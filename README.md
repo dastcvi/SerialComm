@@ -7,10 +7,11 @@ The library also provides generic functions for serializing variables onto a uin
 constructing binary messages to send over serial. See examples/Serialize_Test.ino for the test/example.
 
 *Checksums are implemented as of v1.1*
+*Strings have been moved to an independent message type (away from ASCII) as of v2.0*
 
 ## Message Types
 
-Three message types are supported: ASCII with parameters, ACK/NAK, and binary.
+Four message types are supported: ASCII with numerical parameters, ACK/NAK, binary, and string.
 
 ### ASCII Message
 
@@ -20,16 +21,12 @@ The basic structure of an internal message is as follows:
 #msg_id,param_1,param_2,...,param_n;checksum;
 ```
 
-`msg_id`:   the command number range 0:255 (uint8_t) expressed in ASCII
+`msg_id`:   the command ID, range 0:255 (uint8_t), expressed in ASCII
 
-`param_n`:  The nth type-ambiguous param associated with the command. The param can even be a string
-containing whitespace, but cannot contain restricted chars. The params (including the leading comma
+`param_n`:  The nth type-ambiguous numerical parameter associated with the command. The parameters (including the leading comma
 for each parameter) can take up anywhere from 0 - 127 chars.
 
 `checksum`: ascii decimal unsigned 16-bit integer
-
-Special characters that can't be used in the param_n sections:
-`,` or `;` or `#` or `?` or `!`
 
 Note that a newline character at the end of a message (`\n`) isn't expected, but can be handled and is
 generated for each TX message for ease of reading on a terminal.
@@ -48,7 +45,7 @@ The structure of an ACK/NAK message is as follows:
 ?msg_id,ack/nak;checksum;
 ```
 
-`msg_id`:   the command number range 0:255 (uint8_t) expressed in ASCII
+`msg_id`:   the command ID, range 0:255 (uint8_t), expressed in ASCII
 
 `ack/nak`:  the ACK or NAK expressed in an ascii '0' or '1'
 
@@ -62,13 +59,31 @@ The structure of a binary message is as follows:
 !bin_id,length;bin;checksum;
 ```
 
-`bin_id`:   type of binary data (ASCII)
+`bin_id`:   the binary data ID, range 0:255 (uint8_t), expressed in ASCII
 
-`length`:   length of binary data (ASCII)
+`length`:   length of binary data, expressed in ASCII
 
 `bin`:      binary section
 
 `checksum`: ascii decimal unsigned 16-bit integer
+
+### String message
+
+The structure of a string message is as follows:
+
+```
+"str_id,length;string;checksum;
+```
+
+`str_id`:   the string message ID, range 0:255 (uint8_t), expressed in ASCII
+
+`length`:   length of the string, expressed in ASCII
+
+`string`:   the string message
+
+`checksum`: ascii decimal unsigned 16-bit integer
+
+Note that the maximum string length is set by the `STRING_BUFFER_SIZE` macro, which is set to 128.
 
 ## Checksum
 
