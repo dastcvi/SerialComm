@@ -98,6 +98,9 @@ public:
     bool Add_int32(int32_t val);
     bool Add_float(float val);
 
+    // String RX buffer interface
+    bool Get_string(char * buffer, uint16_t buffer_size);
+
     // ASCII messages with buffers
     ASCII_MSG_t ascii_rx = {0};
     ASCII_MSG_t ascii_tx = {0};

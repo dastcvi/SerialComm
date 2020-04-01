@@ -381,7 +381,7 @@ bool SerialComm::Read_String(uint32_t timeout)
 
     // convert the string length
     if (1 != sscanf(length_buffer, "%u", &temp)) return false;
-    if (temp > 65535) return false;
+    if (temp > 65534) return false;
     string_rx.str_length = (uint16_t) temp;
 
     // read the string section
@@ -398,7 +398,6 @@ bool SerialComm::Read_String(uint32_t timeout)
 
     // null-terminate the buffer
     string_rx.buffer[temp] = '\0';
-
 
     // the message should end with a semi-colon before the checksum
     if (!ReadSpecificChar(timeout, ';')) return false;
@@ -489,6 +488,25 @@ void SerialComm::TX_String(uint8_t str_id, const char * msg)
     WriteChar(';');
     WriteChecksum();
     serial_stream->print('\n');
+}
+
+// ---------------- RX String Interface -------------------
+
+bool SerialComm::Get_string(char * buffer, uint16_t buffer_size)
+{
+    if ((string_rx.str_length + 1) > buffer_size) return false;
+
+    // copy the string
+    uint16_t i = 0;
+    while (i < string_rx.str_length) {
+        buffer[i] = string_rx.buffer[i];
+        i++;
+    }
+
+    // null terminate
+    buffer[i] = '\0';
+
+    return true;
 }
 
 // --------------------- TX Helpers -----------------------

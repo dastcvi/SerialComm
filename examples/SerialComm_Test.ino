@@ -142,7 +142,11 @@ void loop()
     break;
   case STRING_MESSAGE:
     Serial.print("String message: "); Serial.println(ser.string_rx.str_id);
-    Serial.println(ser.string_rx.buffer);
+    if (!ser.Get_string(temp_buffer,128)) {
+      Serial.println("Error getting string");
+    } else {
+      Serial.println(temp_buffer);
+    }
     break;
   case NO_MESSAGE:
   default:
