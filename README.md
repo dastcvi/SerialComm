@@ -229,6 +229,36 @@ bool InternalMessaging::TX_Bin2(uint16_t bytes_in_buffer)
 Receiving messages works similarly. In some cases, it makes sense to just keep one generic RX buffer
 assigned to the class, but if the user wants to read different message types into different locations (or subsequent messages into subsequent arrays), then the user can reassign the RX buffer to do so.
 
+## String Message Usage
+
+The string message type is designed with error messages in mind. As such, it is easy to send a string literal or a pre-prepared buffer:
+
+```C++
+SerialComm sercom(Serial1);
+
+// sending a string literal
+sercom.TX_String(msg_number, "This is my error message");
+
+// sending a pre-prepared buffer
+char buffer[128];
+snprintf(buffer, 128, "Message with a number: %d", 42);
+sercom.TX_String(msg_number, buffer);
+```
+
+To receive a string, there are two interfaces: direct buffer access, or buffer copy:
+
+```C++
+SerialComm sercom(Serial1);
+
+// printing a recieved message via direct buffer access
+Serial.println(sercom.string_rx.buffer);
+
+// copying the message to a local buffer
+char local_buffer[128];
+sercom.Get_string(local_buffer, 128);
+```
+
+
 ## Aside on Arduino's internal serial buffering
 
 This protocol and class is specifically designed for use on the Teensy 3.6 Arduino-compatible MCU board,
